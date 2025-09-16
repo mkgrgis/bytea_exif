@@ -1,0 +1,5 @@
+# bytea exif data extractor
+comment = 'Bytea exif data extractor'
+default_version = '1.0'
+module_pathname = '$libdir/bytea_exif'
+relocatable = true

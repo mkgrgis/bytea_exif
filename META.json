@@ -1,0 +1,42 @@
+{
+   "name": "bytea_exif",
+   "abstract": "EXIF data extractor for PotgreSQL bytea data",
+   "description": "PostgreSQL extension which allow to read EXIF data from images stored as bytea data in PostgreSQL.",
+   "version": "1.0.0",
+   "maintainer": "pgspider",
+   "license": "postgresql",
+   "provides": {
+      "sqlite_fdw": {
+         "abstract": "EXIF data extractor for PotgreSQL bytea data",
+         "file": "bytea_exif.c",
+         "docfile": "README.md",
+         "version": "1.0.0"
+      }
+   },
+   "prereqs": {
+      "runtime": {
+         "requires": {
+            "PostgreSQL": "9.6.0"
+         }
+      }
+   },
+   "resources": {
+      "bugtracker": {
+         "web": "http://github.com/pgspider/sqlite_fdw/issues/"
+      },
+      "repository": {
+        "url":  "git://github.com/pgspider/sqlite_fdw.git",
+        "web":  "https://github.com/pgspider/sqlite_fdw/",
+        "type": "git"
+      }
+   },
+   "generated_by": "David E. Wheeler",
+   "meta-spec": {
+      "version": "1.0.0",
+      "url": "http://pgxn.org/meta/spec.txt"
+   },
+   "tags": [
+      "exif",
+      "bytea"
+   ]
+}
