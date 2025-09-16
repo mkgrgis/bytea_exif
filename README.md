@@ -99,19 +99,24 @@ bytea_exif_version
 Returns `true` if there is EXIF data container. Warning: the container can be decalred without any useful data.
 
 - bool  **bytea_has_exif_ifd(data bytea, ifd text)**;
-Returns true if there is any EXIF data of pointed EXIF directory in the bytea value. Ifd values: '0', '1', 'EXIF', 'GPS', 'Interoperability'
+
+Returns true if there is any EXIF data of pointed EXIF directory in the bytea value. Ifd values: `0`, `1`, `EXIF`, `GPS`, `Interoperability`.
 
 - text **bytea_get_exif_tag_value(data bytea, tag text)**;
+
 Returns value of a EXIF tag if there is such data
 
 - json **bytea_get_exif_json(data bytea)**;
+
 Returns JSON data which contains full set of presented in bytea EXIF tags and it's values
 
 - text **bytea_get_exif_point(data bytea)**;
-Returns text OGC ST_Point value of a photographer location
+
+Returns text OGC `ST_Point` value of a photographer location
 
 - text **bytea_get_dest_exif_point(data bytea)**;
-Returns text OGC ST_Point value of a main photo object location
+
+Returns text OGC `ST_Point` value of a main photo object location
 
 Examples
 --------
