@@ -2242,18 +2242,18 @@ SELECT id,
        bytea_get_exif_tag_value(img, 'ResolutionUnit') ru,
        bytea_get_exif_tag_value(img, 'Saturation') st,
        bytea_get_exif_tag_value(img, 'ExposureProgram') st,
-       bytea_get_exif_tag_value(img, 'InteroperabilityVersion') iv
+       to_timestamp(bytea_get_exif_json(img) ->> 'DateTimeOriginal', 'YYYY:MM:DD HH24:MI:SS') ts
 FROM img;
- id |       make        |  ru  | st | st | iv 
-----+-------------------+------+----+----+----
-  0 |                   |      |    |    | 
-  1 | NIKON CORPORATION | Inch |    |    | 
-  2 | SONY              | Inch |    |    | 
-  3 |                   |      |    |    | 
-  4 | SONY              | Inch |    |    | 
-  5 | Canon             | Inch |    |    | 
-  6 |                   |      |    |    | 
-  7 |                   |      |    |    | 
+ id |       make        |  ru  |   st   |        st         |              ts              
+----+-------------------+------+--------+-------------------+------------------------------
+  0 |                   |      |        |                   | 
+  1 | NIKON CORPORATION | Inch | Normal | Aperture priority | Sat Feb 13 12:25:40 2010 PST
+  2 | SONY              | Inch | Normal | Aperture priority | Mon Sep 01 13:24:46 2008 PDT
+  3 |                   |      |        |                   | 
+  4 | SONY              | Inch | Normal | Aperture priority | Mon Apr 14 20:45:14 2008 PDT
+  5 | Canon             | Inch |        | Aperture priority | Sat Apr 15 12:31:47 2023 PDT
+  6 |                   |      |        |                   | 
+  7 |                   |      |        |                   | 
 (8 rows)
 
 --Testcase 024:

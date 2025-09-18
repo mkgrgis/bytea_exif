@@ -1876,7 +1876,7 @@ SELECT id,
        bytea_get_exif_tag_value(img, 'ResolutionUnit') ru,
        bytea_get_exif_tag_value(img, 'Saturation') st,
        bytea_get_exif_tag_value(img, 'ExposureProgram') st,
-       bytea_get_exif_tag_value(img, 'InteroperabilityVersion') iv
+       to_timestamp(bytea_get_exif_json(img) ->> 'DateTimeOriginal', 'YYYY:MM:DD HH24:MI:SS') ts
 FROM img;
 
 --Testcase 024:

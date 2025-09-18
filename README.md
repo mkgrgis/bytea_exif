@@ -5,6 +5,9 @@ This is a [PostgreSQL](https://www.postgresql.org/) extension which allow to rea
 
 <img src="https://upload.wikimedia.org/wikipedia/commons/2/29/Postgresql_elephant.svg" align="center" height="100" alt="PostgreSQL"/>	+	<img src="logo.gif" align="center" height="100" alt="EXIF"/>
 
+Current CI status.
+[![CI Status](actions/workflows/CI.yml/badge.svg)](actions/workflows/CI.yml)
+
 Contents
 --------
 
@@ -24,6 +27,10 @@ Features
 
 ### Common features
 
+This extension reads EXIF data from a `bytea` data in a PostgreSQL database.
+Used output formats are determined by `libexif` functions with some Open
+Geospatial Consorcium (OGC) additions including coordinates of photographer and
+destination coordinates if assigned.
 
 Also see [Limitations](#limitations)
 
@@ -128,7 +135,7 @@ Once for a database you need, as PostgreSQL superuser.
 ```sql
 	CREATE EXTENSION bytea_exif;
 
--- for testing or for example playground
+-- only for testing or for example playground
 	CREATE EXTENSION http;
 	CREATE EXTENSION postgis;
 ```
@@ -137,7 +144,7 @@ Once for a database you need, as PostgreSQL superuser.
 
 ```sql
 -- Common flags and geo data
-with a as ( -- download picture from internet as `bytea` data
+with a as ( -- download a picture from internet as `bytea` data
 select text_to_bytea(content) img
   from http_get('http://moscowparks.narod.ru/_ph/58/61261130.jpg')
 )
@@ -150,7 +157,7 @@ select bytea_has_exif(img) flag_exif,
 from a;
 
 -- Some other data
-with a as ( -- download picture from internet as `bytea` data
+with a as ( -- download a picture from internet as `bytea` data
 select text_to_bytea(content) img
   from http_get('http://moscowparks.narod.ru/_ph/58/61261130.jpg')
 )

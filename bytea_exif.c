@@ -14,14 +14,13 @@
 #include "bytea_exif.h"
 
 #include "fmgr.h"
+#include "storage/ipc.h"
 #include "utils/builtins.h"
 #if PG_VERSION_NUM >= 160000
 	#include "varatt.h"
 #else
 	#include "lib/stringinfo.h"
 #endif
-
-#include "storage/ipc.h"
 
 Datum bytea_exif_version(PG_FUNCTION_ARGS);
 Datum bytea_exif_libexif_version(PG_FUNCTION_ARGS);
@@ -34,7 +33,6 @@ Datum bytea_get_dest_exif_point(PG_FUNCTION_ARGS);
 static void bytea_exif_exit(int code, Datum arg);
 
 extern PGDLLEXPORT void _PG_init(void);
-
 static void bytea_exif_exit(int code, Datum arg);
 
 PG_MODULE_MAGIC;
@@ -196,7 +194,6 @@ bytea_get_exif_tag_value(PG_FUNCTION_ARGS)
 	ExifLoader	   *loader = NULL;
 	ExifData	   *edata = NULL;
 	ExifContent    *content = NULL;
-	ExifIfd			ifd = EXIF_IFD_0;
 	ExifTag			tag = exif_tag_from_name(tagname);
 	ExifEntry	   *ee = NULL;
 	char			buf0[4096];
@@ -219,33 +216,37 @@ bytea_get_exif_tag_value(PG_FUNCTION_ARGS)
 	exif_loader_write (loader, dat, len);
 	edata = exif_loader_get_data (loader);
 	exif_loader_unref (loader);
-	if (!edata) /* no EXIF data structure */
+	if (edata == NULL) /* no EXIF data structure */
 	{
 		PG_RETURN_NULL();
 	}
 
-	if (strstr(tagname, "GPS"))
-		ifd = EXIF_IFD_GPS;
-
-	content = edata->ifd[ifd];
-	
-    if (content == NULL) /* No ifd */ 
+	for (unsigned j = 0; j < EXIF_IFD_COUNT; j++)
 	{
-		exif_data_free (edata);
+		content = edata->ifd[j];
+		if (!content) /* no EXIF data */
+			continue;
+
+		for (unsigned int i = 0; i < content->count; i++)
+		{
+			ExifEntry	   *ee_loop = content->entries[i];
+			const char	   *tname = exif_tag_get_name_in_ifd(ee_loop->tag, j);
+
+			if (strcmp(tname, tagname) == 0)
+			{
+				ee = ee_loop;
+				break;
+			}
+		}
+		if (ee != NULL)
+			break;
+	} /* ifd */
+
+	if (ee == NULL) /* no such tage name */
+	{
 		PG_RETURN_NULL();
 	}
 
-	ee = exif_content_get_entry(content, tag);
-    if (!ee && ifd == EXIF_IFD_0) /* Try other IFD for IFD_0 case */ 
-	{
-		ee = exif_content_get_entry(edata->ifd[EXIF_IFD_1], tag);
-	}
-    if (!ee) /* No entry for the tag */ 
-	{
-		exif_data_free (edata);
-		PG_RETURN_NULL();
-	}
-    
 	exif_entry_get_value(ee, buf0, sizeof(buf0));
 	exif_data_free (edata);
 	PG_RETURN_TEXT_P(cstring_to_text(buf0));
@@ -309,7 +310,8 @@ bytea_get_exif_json(PG_FUNCTION_ARGS)
 	PG_RETURN_TEXT_P(cstring_to_text(buf->data));
 }
 
-static double exif_gps_extract_double (ExifByteOrder o, ExifEntry * e)
+static double
+exif_gps_extract_double (ExifByteOrder o, ExifEntry * e)
 {
 	ExifRational v_rat;
 	double res = 0.0;
