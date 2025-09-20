@@ -1,0 +1,81 @@
+name: Bytea EXIF data reading test
+
+on:
+  workflow_dispatch:
+  pull_request:  
+  push:
+    branches:
+      - master
+      - main
+jobs:
+  detect-pgversion:
+    runs-on: ubuntu-22.04
+    outputs:
+      pgversion: ${{ steps.detect-pgversion.outputs.targets }}
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: detect-pgversion
+        id: detect-pgversion
+        run: |
+          targets=`bash GitHubActions/detect_targets.sh`
+          echo "targets=$targets" >> $GITHUB_OUTPUT
+
+  test:
+    needs: detect-pgversion
+    env:
+      POSTGIS_VERSION : "3.4.2"
+      HTTP_PROXY: ""
+      HTTPS_PROXY: ""
+    strategy:
+      fail-fast: false
+      matrix:
+        pg: ${{ fromJSON(needs.detect-pgversion.outputs.pgversion) }}
+        config: ["default", "postgis"]
+        
+    name: Test on PostgreSQL ${{ matrix.pg }}, ${{ matrix.config }} mode
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: tar
+        run: tar zcvf bytea_exif.tar.gz ./*
+
+      - name: set_proxy
+        run: bash GitHubActions/env.sh
+
+      - name: set_proxy
+        run: bash GitHubActions/env.sh
+
+      - name: download PostGIS, ${{ matrix.config }} mode
+        run: |
+          if [[ "${{ matrix.config }}" == "postgis" ]]; then
+            bash GitHubActions/download_postgis.sh ${{ env.POSTGIS_VERSION }}
+          fi
+
+      - name: install locales
+        run: bash GitHubActions/install_locales.sh
+
+      - name: build PostgreSQL ${{ matrix.pg }}
+        run: bash GitHubActions/build_postgres.sh ${{ matrix.pg }}
+
+      - name: install libexif, ${{ matrix.config }} mode
+        run: bash GitHubActions/install_libexif.sh ${{ matrix.pg }} ${{ matrix.config }}
+
+      - name: build bytea_exif, ${{ matrix.config }} mode
+        run: |
+          bash GitHubActions/build_bytea_exif.sh ${{ matrix.pg }} ${{ matrix.config }}
+
+      - name: execute bytea_exif test
+        run: bash GitHubActions/execute_test.sh ${{ matrix.pg }} ${{ matrix.config }}
+
+      - name: download output files (regression.diffs)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.pg }}-${{ matrix.config }}-test-results
+          path: |
+            workdir/postgresql-${{ matrix.pg }}/contrib/bytea_exif/regression.diffs
+            workdir/postgresql-${{ matrix.pg }}/contrib/bytea_exif/regression.out
+            workdir/postgresql-${{ matrix.pg }}/contrib/bytea_exif/results
+          retention-days: 5
