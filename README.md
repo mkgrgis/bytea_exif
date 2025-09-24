@@ -59,14 +59,15 @@ Prerequisites:
 * `postgresql-server-dev`, especially `postgres.h`
 * `libexif-dev`, especially `libexif/*.h` headers
 * `libmagic-dev`, especially `magic.h` header
+* `iconv.h` header for UTF-16 and JIS data converting to PostgreSQL value. This header usually belongs to `libc*-dev`.
 
 #### 1. Install C EXIF library and Postgres development libraries
 
 For Debian or Ubuntu:
 
-`apt-get install libexif-dev`
+`apt-get install libexif-dev libmagic-dev -y`
 
-`apt-get install postgresql-server-dev-XX`, where XX matches your postgres version, i.e. `apt-get install postgresql-server-dev-15`
+`apt-get install postgresql-server-dev-XX -y`, where XX matches your postgres version, i.e. `apt-get install postgresql-server-dev-18 -y`
 
 #### 2. Build and install bytea_exif
 
@@ -80,7 +81,7 @@ make USE_NO_MIME=1
 make install USE_NO_MIME=1
 ```
 
-Usual build, also camn be combined with `USE_NO_MIME`.
+Usual build, also can be combined with `USE_NO_MIME`.
 ```sh
 make USE_PGXS=1
 make install USE_PGXS=1
@@ -101,7 +102,7 @@ Spatial functions of this extension returns common OGC `ST_Point` data like `Poi
 Functions
 ---------
 
-- **bytea_exif_version()**;
+- **bytea_exif_version**();
 Returns standard "version integer" as `major version * 10000 + minor version * 100 + bugfix`.
 ```
 bytea_exif_version
@@ -109,35 +110,43 @@ bytea_exif_version
               10000
 ```
 
-- bool **bytea_get_mime_type(data bytea)**;
+- bool **bytea_get_mime_type**(data bytea);
 
 Returns mime type value of bytea data based on libmagic list of possible values.
 
-- text **bytea_has_exif(data bytea)**;
+- text **bytea_has_exif**(data bytea);
 
 Returns `true` if there is EXIF data container. Warning: the container can be decalred without any useful data.
 
-- bool  **bytea_has_exif_ifd(data bytea, ifd text)**;
+- bool  **bytea_has_exif_ifd**(data bytea, ifd text);
 
 Returns true if there is any EXIF data of pointed EXIF directory in the bytea value. Ifd values: `0`, `1`, `EXIF`, `GPS`, `Interoperability`.
 
-- text **bytea_get_exif_tag_value(data bytea, tag text)**;
+- text **bytea_get_exif_tag_value**(data bytea, tag text);
 
 Returns value of a EXIF tag if there is such data
 
-- json **bytea_get_exif_json(data bytea)**;
+- json **bytea_get_exif_json**(data bytea);
 
 Returns JSON data which contains full set of presented in bytea EXIF tags and it's values
 
-- text **bytea_get_exif_point(data bytea)**;
+- text **bytea_get_exif_point**(data bytea);
 
 Returns text OGC `ST_Point` value of a photographer location.
 Note: returns `SRID=4326` point for `WGS-84` EXIF data geodatum, no SRID otherwise.
 
-- text **bytea_get_dest_exif_point(data bytea)**;
+- text **bytea_get_exif_dest_point**(data bytea);
 
 Returns text OGC `ST_Point` value of a main photo object location.
 Note: returns `SRID=4326` point for `WGS-84` EXIF data geodatum, no SRID otherwise.
+
+- timestamp **bytea_get_exif_gps_utc_timestamp**(data bytea);
+
+Returns GPS timestamp of image. According EXIF standard the value is UTC time.
+
+- text **bytea_get_exif_user_comment**(data bytea);
+
+Returns UserComment EXIF tag text data as text encoded for current PostgreSQL database.
 
 Examples
 --------
@@ -165,8 +174,8 @@ select text_to_bytea(content) img
 select bytea_has_exif(img) flag_exif,
        bytea_has_exif_ifd(img, 'GPS') flag_gps_ifd,
        bytea_get_exif_point(img)::geometry photographer,
-       bytea_get_dest_exif_point(img)::geometry dest,
-       ST_MakeLine(bytea_get_exif_point(img)::geometry, bytea_get_dest_exif_point(img)::geometry) line,
+       bytea_get_exif_dest_point(img)::geometry dest,
+       ST_MakeLine(bytea_get_exif_point(img)::geometry, bytea_get_exif_dest_point(img)::geometry) line,
        img
 from a;
 
@@ -180,7 +189,8 @@ select bytea_get_exif_json(img) exif,
        ((to_date(bytea_get_exif_json(img) ->> 'GPSDateStamp', 'YYYY:MM:DD')::timestamp +
        ((bytea_get_exif_json(img) ->> 'GPSTimeStamp')||' UTC')::time)) at time zone 'utc' "ts_GPS",
        bytea_get_exif_json(img) ->> 'Artist' "Artist",
-       ST_MakeLine(bytea_get_exif_point(img)::geometry, bytea_get_dest_exif_point(img)::geometry) line,
+       bytea_get_exif_gps_utc_timestamp(img) at time zone 'utc' "ts_GPS_fast",
+       ST_MakeLine(bytea_get_exif_point(img)::geometry, bytea_get_exif_dest_point(img)::geometry) line,
        img
 from a;
 
