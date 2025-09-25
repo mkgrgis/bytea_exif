@@ -1,4 +1,23 @@
-cmtest='jap : いろはにほへと ちりぬるを わかよたれそ つねならむ うゐのおくやま けふこえて あさきゆめみし ゑひもせす.- bul : Ах, чудна българска земьо, полюшвай цъфтящи жита.- rus : Широкая электрификация южных губерний даст мощный толчок подъёму сельского хозяйства.- aze : Zəfər, jaketini də, papağını da götür, bu axşam hava çox soyuq olacaq.- arm : Բել դղյակի ձախ ժամն օֆ ազգությանը ցպահանջ չճշտած վնաս էր եւ փառք։- ukr : Гей, хлопці, не вспію — на ґанку ваша файна їжа знищується бурундучком.- eus : Permin gox dabiltzu yoskiñ.- bel : У рудога вераб’я ў сховішчы пад фатэлем ляжаць нейкія гаючыя зёлкі.- gre : Τάχιστη αλώπηξ βαφής ψημένη γη, δρασκελίζει υπέρ νωθρού κυνός- gle : Chuaigh bé mhórshách le dlúthspád fíorfhinn trí hata mo dhea-phorcáin bhig.- spa : Quiere la boca exhausta vid, kiwi, piña y fugaz jamón.- kor : 키스의 고유조건은 입술끼리 만나야 하고 특별한 기술은 필요치 않다.- lav : Ķieģeļu cepējs Edgars Buls fraku un hūti žāvē uz čīkstošām eņģēm.- pol : Pchnąć w tę łódź jeża lub ośm skrzyń fig.- fra : Dès Noël où un zéphyr haï me vêt de glaçons würmiens je dîne d’exquis rôtis de bœuf au kir à l’aÿ d’âge mûr & cætera !- srp : Ljubavi, Olga, hajde pođi u Fudži i čut ćeš nježnu muziku srca.- epo : Laŭ Ludoviko Zamenhof bongustas freŝa ĉeĥa manĝaĵo kun spicoj.- cze : Zvlášť zákeřný učeň s ďolíčky běží podél zóny úlů.- ara : أبجد هوَّز حُطّي كلَمُن سَعْفَص قُرِشَت ثَخَدٌ ضَظَغ- heb : עטלף אבק נס דרך מזגן שהתפוצץ כי חם';
+cmtest='jap : いろはにほへと ちりぬるを わかよたれそ つねならむ うゐのおくやま けふこえて あさきゆめみし ゑひもせす.
+bul : Ах, чудна българска земьо, полюшвай цъфтящи жита.
+rus : Широкая электрификация южных губерний даст мощный толчок подъёму сельского хозяйства.
+aze : Zəfər, jaketini də, papağını da götür, bu axşam hava çox soyuq olacaq.
+arm : Բել դղյակի ձախ ժամն օֆ ազգությանը ցպահանջ չճշտած վնաս էր եւ փառք։
+ukr : Гей, хлопці, не вспію — на ґанку ваша файна їжа знищується бурундучком.
+eus : Permin gox dabiltzu yoskiñ.
+bel : У рудога вераб’я ў сховішчы пад фатэлем ляжаць нейкія гаючыя зёлкі.
+gre : Τάχιστη αλώπηξ βαφής ψημένη γη, δρασκελίζει υπέρ νωθρού κυνός
+gle : Chuaigh bé mhórshách le dlúthspád fíorfhinn trí hata mo dhea-phorcáin bhig.
+spa : Quiere la boca exhausta vid, kiwi, piña y fugaz jamón.
+kor : 키스의 고유조건은 입술끼리 만나야 하고 특별한 기술은 필요치 않다.
+lav : Ķieģeļu cepējs Edgars Buls fraku un hūti žāvē uz čīkstošām eņģēm.
+pol : Pchnąć w tę łódź jeża lub ośm skrzyń fig.
+fra : Dès Noël où un zéphyr haï me vêt de glaçons würmiens je dîne d’exquis rôtis de bœuf au kir à l’aÿ d’âge mûr & cætera !
+srp : Ljubavi, Olga, hajde pođi u Fudži i čut ćeš nježnu muziku srca.
+epo : Laŭ Ludoviko Zamenhof bongustas freŝa ĉeĥa manĝaĵo kun spicoj.
+cze : Zvlášť zákeřný učeň s ďolíčky běží podél zóny úlů.
+ara : أبجد هوَّز حُطّي كلَمُن سَعْفَص قُرِشَت ثَخَدٌ ضَظَغ
+heb : עטלף אבק נס דרך מזגן שהתפוצץ כי חם';
 
 exiftool -UserComment="$cmtest" "$1";
 exiftool -UserComment "$1";
