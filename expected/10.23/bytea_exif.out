@@ -20,6 +20,8 @@ SELECT bytea_exif_libexif_version() v;
 CREATE TABLE img (id int2 not null, img bytea);
 --Testcase 005:
 \copy img from './sql/test_images.data';
+--Testcase 006:
+set timezone to 'UTC';
 --Testcase 010:
 SELECT id, bytea_has_exif(img) exif, bytea_has_exif(img) IS NULL n, length(img) l FROM img;
  id | exif | n |   l   
@@ -413,20 +415,19 @@ SELECT id,
        bytea_get_exif_tag_value(img, 'Make') make,
        bytea_get_exif_tag_value(img, 'ResolutionUnit') ru,
        bytea_get_exif_tag_value(img, 'Saturation') st,
-       bytea_get_exif_tag_value(img, 'ExposureProgram') ep,
-       to_timestamp(bytea_get_exif_json(img) ->> 'DateTimeOriginal', 'YYYY:MM:DD HH24:MI:SS') ts
+       bytea_get_exif_tag_value(img, 'ExposureProgram') ep
 FROM img;
- id |       make        |  ru  |   st   |        ep         |              ts              
-----+-------------------+------+--------+-------------------+------------------------------
-  0 |                   |      |        |                   | 
-  1 | NIKON CORPORATION | Inch | Normal | Aperture priority | Sat Feb 13 12:25:40 2010 PST
-  2 | SONY              | Inch | Normal | Aperture priority | Mon Sep 01 13:24:46 2008 PDT
-  3 |                   |      |        |                   | 
-  4 | SONY              | Inch | Normal | Aperture priority | Mon Apr 14 20:45:14 2008 PDT
-  5 | Canon             | Inch |        | Aperture priority | Sat Apr 15 12:31:47 2023 PDT
-  6 |                   |      |        |                   | 
-  7 |                   |      |        |                   | 
-  8 |                   | Inch |        |                   | 
+ id |       make        |  ru  |   st   |        ep         
+----+-------------------+------+--------+-------------------
+  0 |                   |      |        | 
+  1 | NIKON CORPORATION | Inch | Normal | Aperture priority
+  2 | SONY              | Inch | Normal | Aperture priority
+  3 |                   |      |        | 
+  4 | SONY              | Inch | Normal | Aperture priority
+  5 | Canon             | Inch |        | Aperture priority
+  6 |                   |      |        | 
+  7 |                   |      |        | 
+  8 |                   | Inch |        | 
 (9 rows)
 
 --Testcase 021:
@@ -476,23 +477,97 @@ SELECT id, bytea_get_mime_type(img) mime, bytea_get_mime_type(img) IS NULL n FRO
 
 --Testcase 024:
 SELECT id,
-		to_char (bytea_get_exif_gps_utc_timestamp(img), 'YYYY-MM-DD HH24:MI:SS') ts,
+		to_char (bytea_get_exif_gps_utc_timestamp(img), 'YYYY-MM-DD HH24:MI:SS TZ') ts,
 		bytea_get_exif_gps_utc_timestamp(img) IS NULL n
 FROM img;
- id |         ts          | n 
-----+---------------------+---
-  0 |                     | t
-  1 |                     | t
-  2 |                     | t
-  3 |                     | t
-  4 |                     | t
-  5 | 2023-04-15 09:31:27 | f
-  6 |                     | t
-  7 |                     | t
-  8 |                     | t
+ id |           ts            | n 
+----+-------------------------+---
+  0 |                         | t
+  1 |                         | t
+  2 |                         | t
+  3 |                         | t
+  4 |                         | t
+  5 | 2023-04-15 09:31:27 UTC | f
+  6 |                         | t
+  7 |                         | t
+  8 |                         | t
 (9 rows)
 
 --Testcase 025:
+SELECT id,
+       to_timestamp((bytea_get_exif_json(img) ->> 'DateTimeOriginal') || '+00', 'YYYY:MM:DD HH24:MI:SS')::timestamp without time zone at time zone 'Etc/UTC' ts
+FROM img;
+ id |              ts              
+----+------------------------------
+  0 | 
+  1 | Sat Feb 13 12:25:40 2010 UTC
+  2 | Mon Sep 01 13:24:46 2008 UTC
+  3 | 
+  4 | Mon Apr 14 20:45:14 2008 UTC
+  5 | Sat Apr 15 12:31:47 2023 UTC
+  6 | 
+  7 | 
+  8 | 
+(9 rows)
+
+--Testcase 026:
+set timezone to 'Australia/Canberra';
+--Testcase 027:
+SELECT id,
+       to_timestamp((bytea_get_exif_json(img) ->> 'DateTimeOriginal') || '+00', 'YYYY:MM:DD HH24:MI:SS')::timestamp without time zone at time zone 'Etc/UTC' ts
+FROM img;
+ id |              ts               
+----+-------------------------------
+  0 | 
+  1 | Sat Feb 13 23:25:40 2010 AEDT
+  2 | Mon Sep 01 23:24:46 2008 AEST
+  3 | 
+  4 | Tue Apr 15 06:45:14 2008 AEST
+  5 | Sat Apr 15 22:31:47 2023 AEST
+  6 | 
+  7 | 
+  8 | 
+(9 rows)
+
+--Testcase 028:
+SELECT id,
+		to_char (bytea_get_exif_gps_local_timestamp(img), 'YYYY-MM-DD HH24:MI:SS TZ') ts,
+		bytea_get_exif_gps_local_timestamp(img) IS NULL n
+FROM img;
+ id |          ts          | n 
+----+----------------------+---
+  0 |                      | t
+  1 |                      | t
+  2 |                      | t
+  3 |                      | t
+  4 |                      | t
+  5 | 2023-04-14 23:31:27  | f
+  6 |                      | t
+  7 |                      | t
+  8 |                      | t
+(9 rows)
+
+--Testcase 029:
+set timezone to 'UTC';
+--Testcase 030:
+SELECT id,
+		to_char (bytea_get_exif_gps_local_timestamp(img), 'YYYY-MM-DD HH24:MI:SS TZ') ts,
+		bytea_get_exif_gps_local_timestamp(img) IS NULL n
+FROM img;
+ id |          ts          | n 
+----+----------------------+---
+  0 |                      | t
+  1 |                      | t
+  2 |                      | t
+  3 |                      | t
+  4 |                      | t
+  5 | 2023-04-15 09:31:27  | f
+  6 |                      | t
+  7 |                      | t
+  8 |                      | t
+(9 rows)
+
+--Testcase 031:
 SELECT id,
 		replace(bytea_get_exif_user_comment(img), '- ', '
 ') uc,
@@ -530,5 +605,5 @@ FROM img;
     | heb : עטלף אבק נס דרך מזגן שהתפוצץ כי חם                                                                                     | 
 (9 rows)
 
---Testcase 030:
+--Testcase 040:
 DROP EXTENSION bytea_exif CASCADE;

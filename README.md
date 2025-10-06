@@ -140,9 +140,13 @@ Note: returns `SRID=4326` point for `WGS-84` EXIF data geodatum, no SRID otherwi
 Returns text OGC `ST_Point` value of a main photo object location.
 Note: returns `SRID=4326` point for `WGS-84` EXIF data geodatum, no SRID otherwise.
 
-- timestamp **bytea_get_exif_gps_utc_timestamp**(data bytea);
+- timestamptz **bytea_get_exif_gps_utc_timestamp**(data bytea);
 
 Returns GPS timestamp of image. According EXIF standard the value is UTC time.
+
+- timestamp **bytea_get_exif_gps_local_timestamp**(data bytea);
+
+Returns GPS timestamp of image transformed to local time.
 
 - text **bytea_get_exif_user_comment**(data bytea);
 
@@ -185,7 +189,9 @@ select text_to_bytea(content) img
   from http_get('http://moscowparks.narod.ru/_ph/58/61261130.jpg')
 )
 select bytea_get_exif_json(img) exif,
-       to_timestamp(bytea_get_exif_json(img) ->> 'DateTimeOriginal', 'YYYY:MM:DD HH24:MI:SS') ts,
+       to_timestamp(bytea_get_exif_json(img) ->> 'DateTimeOriginal',
+                    'YYYY:MM:DD HH24:MI:SS'
+                   )::timestamp without time zone at time zone 'Etc/UTC' ts,
        ((to_date(bytea_get_exif_json(img) ->> 'GPSDateStamp', 'YYYY:MM:DD')::timestamp +
        ((bytea_get_exif_json(img) ->> 'GPSTimeStamp')||' UTC')::time)) at time zone 'utc' "ts_GPS",
        bytea_get_exif_json(img) ->> 'Artist' "Artist",

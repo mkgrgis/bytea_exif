@@ -43,6 +43,7 @@ Datum bytea_get_exif_json(PG_FUNCTION_ARGS);
 Datum bytea_get_exif_point(PG_FUNCTION_ARGS);
 Datum bytea_get_exif_dest_point(PG_FUNCTION_ARGS);
 Datum bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS);
+Datum bytea_get_exif_gps_local_timestamp(PG_FUNCTION_ARGS);
 Datum bytea_get_exif_user_comment(PG_FUNCTION_ARGS);
 static void bytea_exif_exit(int code, Datum arg);
 
@@ -61,6 +62,7 @@ PG_FUNCTION_INFO_V1(bytea_get_exif_json);
 PG_FUNCTION_INFO_V1(bytea_get_exif_point);
 PG_FUNCTION_INFO_V1(bytea_get_exif_dest_point);
 PG_FUNCTION_INFO_V1(bytea_get_exif_gps_utc_timestamp);
+PG_FUNCTION_INFO_V1(bytea_get_exif_gps_local_timestamp);
 PG_FUNCTION_INFO_V1(bytea_get_exif_user_comment);
 
 static double
@@ -71,6 +73,8 @@ static int
 Ifd_from_name (char* ifdname);
 char*
 escapeJson(const char* json);
+static NullableDatum
+get_exif_utc_timestamp(bytea * arg);
 
 /*
  * Library load-time initialization, sets on_proc_exit() callback for
@@ -581,10 +585,13 @@ bytea_get_exif_dest_point(PG_FUNCTION_ARGS)
 	PG_RETURN_TEXT_P(cstring_to_text(buf->data));
 }
 
-Datum
-bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
+/*
+ * get_exif_utc_timestamp:
+ * helper for getting local time timestamp and UTC timestamp from exif
+ */
+static NullableDatum
+get_exif_utc_timestamp(bytea * arg)
 {
-	bytea		   *arg = PG_GETARG_BYTEA_PP(0);
 	unsigned		len = VARSIZE_ANY_EXHDR(arg);
 	unsigned char  *dat = (unsigned char*)VARDATA_ANY(arg);
 	ExifLoader	   *loader = NULL;
@@ -593,7 +600,7 @@ bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
 	Datum			res_tstz;
 
 	if (len == 0) /* no data */
-		PG_RETURN_NULL();
+		return (struct NullableDatum) {PointerGetDatum(NULL), true};
 
 	loader = exif_loader_new ();
 	exif_loader_write (loader, dat, len);
@@ -601,13 +608,13 @@ bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
 	exif_loader_unref (loader);
 	if (!edata) /* no EXIF data structure */
 	{
-		PG_RETURN_NULL();
+		return (struct NullableDatum) {PointerGetDatum(NULL), true};
 	}
 	content = edata->ifd[EXIF_IFD_GPS];
 	if (!content) /* no EXIF data */
 	{
 		exif_data_free (edata);
-		PG_RETURN_NULL();
+		return (struct NullableDatum) {PointerGetDatum(NULL), true};
 	}
 
 	{
@@ -618,7 +625,7 @@ bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
 		if (e_ts == NULL || e_ds == NULL) /* no necessary timestamp data */
 		{
 			exif_data_free (edata);
-			PG_RETURN_NULL();
+			return (struct NullableDatum) {PointerGetDatum(NULL), true};
 		}
 		else if (e_ds->format != EXIF_FORMAT_ASCII || e_ds->size != 11)
 		{
@@ -627,7 +634,7 @@ bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
 				 errmsg("Invalid GPS date EXIF format"),
 				 errhint("EXIF code: %d, EXIF length: %d", e_ds->format, e_ds->size)));
 			exif_data_free (edata);
-			PG_RETURN_NULL();
+			return (struct NullableDatum) {PointerGetDatum(NULL), true};
 		}
 		else if (e_ts->format != EXIF_FORMAT_RATIONAL)
 		{
@@ -636,7 +643,7 @@ bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
 				 errmsg("Invalid GPS time EXIF format"),
 				 errhint("EXIF code: %d", e_ts->format)));
 			exif_data_free (edata);
-			PG_RETURN_NULL();
+			return (struct NullableDatum) {PointerGetDatum(NULL), true};
 		}
 		else
 		{
@@ -660,23 +667,51 @@ bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
 				ereport(WARNING,
 					(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
 					 errmsg("Invalid GPS data or GPS time EXIF format")));
-				PG_RETURN_NULL();
+				return (struct NullableDatum) {PointerGetDatum(NULL), true};
 			}
 			else
 			{
 				double sec = (double) rs.numerator / (double) rs.denominator;
-				res_tstz = DirectFunctionCall6(make_timestamp,
+				Datum UTC_tz = DirectFunctionCall1(namein, CStringGetDatum ("UTC"));
+				res_tstz = DirectFunctionCall7(make_timestamptz,
 					Int32GetDatum(y),
 					Int32GetDatum(m),
 					Int32GetDatum(d),
 					Int32GetDatum(rh.numerator / rh.denominator),
 					Int32GetDatum(rm.numerator / rm.denominator),
-					Float8GetDatum(sec));
+					Float8GetDatum(sec),
+					UTC_tz);
 			}
 		}
 	}
 	exif_data_free (edata);
-	PG_RETURN_DATUM(res_tstz);
+	return (struct NullableDatum) {res_tstz, false};
+}
+
+Datum
+bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS)
+{
+	bytea		   *arg = PG_GETARG_BYTEA_PP(0);
+	NullableDatum	res = get_exif_utc_timestamp(arg);
+	if (res.isnull == true)
+		PG_RETURN_NULL();
+	else
+		PG_RETURN_DATUM(res.value);
+}
+
+/*
+ * bytea_get_exif_gps_local_timestamp
+ * Gets timestamptz value, but interprets according local time of session
+ */
+Datum
+bytea_get_exif_gps_local_timestamp(PG_FUNCTION_ARGS)
+{
+	bytea		   *arg = PG_GETARG_BYTEA_PP(0);
+	NullableDatum	res = get_exif_utc_timestamp(arg);
+	if (res.isnull == true)
+		PG_RETURN_NULL();
+	else
+		PG_RETURN_DATUM(res.value);
 }
 
 Datum
@@ -694,10 +729,10 @@ bytea_get_exif_user_comment(PG_FUNCTION_ARGS)
 	bool			uc_jis = false;
 	bool			uc_undef = false;
 	bool			uc_encoding_ok = false;
-	char		   *src_enc = "UTF-16"; /* very often */
+	char		   *user_comment_encoding = "UTF-16"; /* very often */
+	char		   *user_comment_exif = NULL;
 	char		   *user_comment_utf8 = "";
 	char		   *user_comment_pg = "";
-	char		   *exif_uc = NULL;
 	int				len_uc = 0;
 #define UC_ENCODING_FIELD_SIZE 8
 
@@ -781,15 +816,15 @@ bytea_get_exif_user_comment(PG_FUNCTION_ARGS)
 	 * the user comment field does not have to be
 	 * NULL terminated.
 	 */
-	exif_uc = palloc(len_uc + 1);
-	memcpy(exif_uc, (char *) (e->data + UC_ENCODING_FIELD_SIZE), len_uc);
-	exif_uc[len_uc] = '\0';
+	user_comment_exif = palloc(len_uc + 1);
+	memcpy(user_comment_exif, (char *) (e->data + UC_ENCODING_FIELD_SIZE), len_uc);
+	user_comment_exif[len_uc] = '\0';
 
 	if (uc_ascii || uc_undef)
-		user_comment_utf8 = exif_uc;
+		user_comment_utf8 = user_comment_exif;
 	else if (uc_unicode || uc_jis)
 	{
-		char *input_ptr = exif_uc;
+		char *input_ptr = user_comment_exif;
 		size_t input_bytes = len_uc;
 		size_t output_bytes = input_bytes * 2; /* maximum to UTF-8*/
 		char *output = palloc(output_bytes);
@@ -807,16 +842,16 @@ bytea_get_exif_user_comment(PG_FUNCTION_ARGS)
 			PG_RETURN_NULL();
 		}
 
-		src_enc = uc_unicode ? "UTF-16" : "JIS";
+		user_comment_encoding = uc_unicode ? "UTF-16" : "JIS";
 
-		conv_desc = iconv_open ("UTF-8", src_enc);
+		conv_desc = iconv_open ("UTF-8", user_comment_encoding);
 		if ( conv_desc == NULL )
 		{
 			if (errno == EINVAL)
 				ereport(ERROR,
 					(errcode(ERRCODE_UNDEFINED_FUNCTION),
 					 errmsg("default conversion function for encoding \"%s\" to \"%s\" does not exist in iconv",
-							src_enc,
+							user_comment_encoding,
 							"UTF-8")));
 			else
 				ereport(ERROR,

@@ -76,12 +76,20 @@ COMMENT ON FUNCTION bytea_get_exif_dest_point
 IS 'Returns text OGC ST_Point value of a main photo object location';
 
 CREATE OR REPLACE FUNCTION bytea_get_exif_gps_utc_timestamp(data bytea)
-  RETURNS timestamp
+  RETURNS timestamptz
   AS 'MODULE_PATHNAME'
   LANGUAGE C IMMUTABLE STRICT;
 
 COMMENT ON FUNCTION bytea_get_exif_gps_utc_timestamp
 IS 'Returns GPS timestamp of image. According EXIF standard the value is UTC time';
+
+CREATE OR REPLACE FUNCTION bytea_get_exif_gps_local_timestamp(data bytea)
+  RETURNS timestamp
+  AS 'MODULE_PATHNAME'
+  LANGUAGE C VOLATILE STRICT;
+
+COMMENT ON FUNCTION bytea_get_exif_gps_utc_timestamp
+IS 'Returns local timestamp of image made from EXIF UTC value';
 
 CREATE OR REPLACE FUNCTION bytea_get_exif_user_comment(data bytea)
   RETURNS text
