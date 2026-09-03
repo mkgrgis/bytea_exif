@@ -653,7 +653,7 @@ get_exif_utc_timestamp(bytea * arg)
 			ExifRational	rh = exif_get_rational (e_ts->data, o);
 			ExifRational	rm = exif_get_rational (e_ts->data + exif_format_get_size (e_ts->format),  o);
 			ExifRational	rs = exif_get_rational (e_ts->data + 2 * exif_format_get_size (e_ts->format), o);
-			bool			valid_time = rh.denominator & rm.denominator & rs.denominator;
+			bool			valid_time = rh.denominator && rm.denominator && rs.denominator;
 
 			strncpy (date, (char *) e_ds->data, e_ds->size);
 			y = (int) strtol((char*)(date + 0 * sizeof(char)), dptr, 10);
@@ -666,7 +666,8 @@ get_exif_utc_timestamp(bytea * arg)
 				exif_data_free (edata);
 				ereport(WARNING,
 					(errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
-					 errmsg("Invalid GPS data or GPS time EXIF format")));
+					 errmsg("Invalid GPS time EXIF format"),
+					 errhint("rh %d / %d, rm %d / %d, rs %d / %d", rh.numerator, rh.denominator, rm.numerator, rm.denominator, rs.numerator, rs.denominator)));
 				return (struct NullableDatum) {PointerGetDatum(NULL), true};
 			}
 			else
