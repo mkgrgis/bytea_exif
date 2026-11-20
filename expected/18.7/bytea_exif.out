@@ -1,0 +1,609 @@
+--SET log_min_messages TO DEBUG1;
+--SET client_min_messages TO DEBUG1;
+--Testcase 001:
+CREATE EXTENSION bytea_exif;
+--Testcase 002:
+SELECT bytea_exif_version() v;
+   v    
+--------
+ 100000
+(1 row)
+
+--Testcase 003:
+SELECT bytea_exif_libexif_version() v;
+ v 
+---
+  
+(1 row)
+
+--Testcase 004:
+CREATE TABLE img (id int2 not null, img bytea);
+--Testcase 005:
+\copy img from './sql/test_images.data';
+--Testcase 006:
+set timezone to 'UTC';
+--Testcase 010:
+SELECT id, bytea_has_exif(img) exif, bytea_has_exif(img) IS NULL n, length(img) l FROM img;
+ id | exif | n |   l   
+----+------+---+-------
+  0 |      | t |      
+  1 | t    | f | 15178
+  2 | t    | f | 20965
+  3 | f    | f | 15232
+  4 | t    | f | 27589
+  5 | t    | f | 24299
+  6 | f    | f |    12
+  7 | f    | f |     0
+  8 | t    | f | 16271
+(9 rows)
+
+--Testcase 011:
+SELECT id, bytea_has_exif_ifd(img, '0') exif, bytea_has_exif_ifd(img, '0') IS NULL n, length(img) l FROM img;
+ id | exif | n |   l   
+----+------+---+-------
+  0 |      | t |      
+  1 | t    | f | 15178
+  2 | t    | f | 20965
+  3 | f    | f | 15232
+  4 | t    | f | 27589
+  5 | t    | f | 24299
+  6 | f    | f |    12
+  7 | f    | f |     0
+  8 | t    | f | 16271
+(9 rows)
+
+--Testcase 012:
+SELECT id, bytea_has_exif_ifd(img, '1') exif, bytea_has_exif_ifd(img, '1') IS NULL n, length(img) l FROM img;
+ id | exif | n |   l   
+----+------+---+-------
+  0 |      | t |      
+  1 | t    | f | 15178
+  2 | t    | f | 20965
+  3 | f    | f | 15232
+  4 | t    | f | 27589
+  5 | t    | f | 24299
+  6 | f    | f |    12
+  7 | f    | f |     0
+  8 | t    | f | 16271
+(9 rows)
+
+--Testcase 013:
+SELECT id, bytea_has_exif_ifd(img, 'EXIF') exif, bytea_has_exif_ifd(img, 'EXIF') IS NULL n, length(img) l FROM img;
+ id | exif | n |   l   
+----+------+---+-------
+  0 |      | t |      
+  1 | t    | f | 15178
+  2 | t    | f | 20965
+  3 | f    | f | 15232
+  4 | t    | f | 27589
+  5 | t    | f | 24299
+  6 | f    | f |    12
+  7 | f    | f |     0
+  8 | t    | f | 16271
+(9 rows)
+
+--Testcase 014:
+SELECT id, bytea_has_exif_ifd(img, 'GPS') exif, bytea_has_exif_ifd(img, 'GPS') IS NULL n, length(img) l FROM img;
+ id | exif | n |   l   
+----+------+---+-------
+  0 |      | t |      
+  1 | t    | f | 15178
+  2 | f    | f | 20965
+  3 | f    | f | 15232
+  4 | t    | f | 27589
+  5 | t    | f | 24299
+  6 | f    | f |    12
+  7 | f    | f |     0
+  8 | f    | f | 16271
+(9 rows)
+
+--Testcase 015:
+SELECT id, bytea_has_exif_ifd(img, 'Interoperability') exif, bytea_has_exif_ifd(img, 'Interoperability') IS NULL n, length(img) l FROM img;
+ id | exif | n |   l   
+----+------+---+-------
+  0 |      | t |      
+  1 | f    | f | 15178
+  2 | f    | f | 20965
+  3 | f    | f | 15232
+  4 | f    | f | 27589
+  5 | f    | f | 24299
+  6 | f    | f |    12
+  7 | f    | f |     0
+  8 | f    | f | 16271
+(9 rows)
+
+--Testcase 016:
+SELECT id, bytea_has_exif_ifd(img, 'foo') exif, bytea_has_exif_ifd(img, 'foo') IS NULL n, length(img) l FROM img;
+ id | exif | n |   l   
+----+------+---+-------
+  0 |      | t |      
+  1 |      | t | 15178
+  2 |      | t | 20965
+  3 |      | t | 15232
+  4 |      | t | 27589
+  5 |      | t | 24299
+  6 |      | t |    12
+  7 | f    | f |     0
+  8 |      | t | 16271
+(9 rows)
+
+--Testcase 017:
+SELECT id,
+       bytea_get_exif_json(img) IS NULL "null",
+       bytea_get_exif_json(img) exif
+FROM img;
+ id | null |                                      exif                                      
+----+------+--------------------------------------------------------------------------------
+  0 | t    | 
+  1 | f    | {                                                                             +
+    |      |  "Make" : "NIKON CORPORATION",                                                +
+    |      |  "Model" : "NIKON D90",                                                       +
+    |      |  "XResolution" : "70",                                                        +
+    |      |  "YResolution" : "70",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "Software" : "Pictomio 1.2.31.0",                                            +
+    |      |  "DateTime" : "2010:07:04 23:31:14",                                          +
+    |      |  "Compression" : "JPEG compression",                                          +
+    |      |  "XResolution" : "72",                                                        +
+    |      |  "YResolution" : "72",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "ExposureTime" : "1\/40 sec.",                                               +
+    |      |  "FNumber" : "f\/5.0",                                                        +
+    |      |  "ExposureProgram" : "Aperture priority",                                     +
+    |      |  "ISOSpeedRatings" : "200",                                                   +
+    |      |  "ExifVersion" : "Exif Version 2.21",                                         +
+    |      |  "DateTimeOriginal" : "2010:02:13 12:25:40",                                  +
+    |      |  "DateTimeDigitized" : "2010:02:13 12:25:40",                                 +
+    |      |  "ShutterSpeedValue" : "5.32 EV (1\/40 sec.)",                                +
+    |      |  "ApertureValue" : "4.64 EV (f\/5.0)",                                        +
+    |      |  "ExposureBiasValue" : "0.00 EV",                                             +
+    |      |  "MaxApertureValue" : "4.60 EV (f\/4.9)",                                     +
+    |      |  "SubjectDistance" : "1.1 m",                                                 +
+    |      |  "MeteringMode" : "Pattern",                                                  +
+    |      |  "LightSource" : "Unknown",                                                   +
+    |      |  "Flash" : "Flash did not fire",                                              +
+    |      |  "FocalLength" : "50.0 mm",                                                   +
+    |      |  "SubSecTimeOriginal" : "00",                                                 +
+    |      |  "SubSecTimeDigitized" : "00",                                                +
+    |      |  "SensingMethod" : "One-chip color area sensor",                              +
+    |      |  "FileSource" : "DSC",                                                        +
+    |      |  "SceneType" : "Directly photographed",                                       +
+    |      |  "CFAPattern" : "8 bytes undefined data",                                     +
+    |      |  "CustomRendered" : "Normal process",                                         +
+    |      |  "ExposureMode" : "Auto exposure",                                            +
+    |      |  "WhiteBalance" : "Auto white balance",                                       +
+    |      |  "DigitalZoomRatio" : " 1",                                                   +
+    |      |  "FocalLengthIn35mmFilm" : "75",                                              +
+    |      |  "SceneCaptureType" : "Standard",                                             +
+    |      |  "GainControl" : "Normal",                                                    +
+    |      |  "Contrast" : "Normal",                                                       +
+    |      |  "Saturation" : "Normal",                                                     +
+    |      |  "Sharpness" : "Normal",                                                      +
+    |      |  "SubjectDistanceRange" : "Unknown",                                          +
+    |      |  "FlashpixVersion" : "FlashPix Version 1.0",                                  +
+    |      |  "ColorSpace" : "Uncalibrated",                                               +
+    |      |  "GPSLatitudeRef" : "N",                                                      +
+    |      |  "GPSLatitude" : "43, 40, 7.241",                                             +
+    |      |  "GPSLongitudeRef" : "E",                                                     +
+    |      |  "GPSLongitude" : " 7, 13, 7.953",                                            +
+    |      |  "GPSAltitudeRef" : "Sea level",                                              +
+    |      |  "GPSAltitude" : " 0",                                                        +
+    |      |  "GPSMapDatum" : "WGS-84"                                                     +
+    |      | }
+  2 | f    | {                                                                             +
+    |      |  "Make" : "SONY",                                                             +
+    |      |  "Model" : "DSC-H5",                                                          +
+    |      |  "XResolution" : "70",                                                        +
+    |      |  "YResolution" : "70",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "Software" : "Pictomio 1.2.31.0",                                            +
+    |      |  "DateTime" : "2010:07:04 23:31:13",                                          +
+    |      |  "Compression" : "JPEG compression",                                          +
+    |      |  "XResolution" : "72",                                                        +
+    |      |  "YResolution" : "72",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "ExposureTime" : "1\/125 sec.",                                              +
+    |      |  "FNumber" : "f\/3.7",                                                        +
+    |      |  "ExposureProgram" : "Aperture priority",                                     +
+    |      |  "ISOSpeedRatings" : "200",                                                   +
+    |      |  "ExifVersion" : "Exif Version 2.21",                                         +
+    |      |  "DateTimeOriginal" : "2008:09:01 13:24:46",                                  +
+    |      |  "DateTimeDigitized" : "2008:09:01 13:24:46",                                 +
+    |      |  "ShutterSpeedValue" : "6.97 EV (1\/125 sec.)",                               +
+    |      |  "ApertureValue" : "3.78 EV (f\/3.7)",                                        +
+    |      |  "ExposureBiasValue" : "0.30 EV",                                             +
+    |      |  "MaxApertureValue" : "3.00 EV (f\/2.8)",                                     +
+    |      |  "MeteringMode" : "Pattern",                                                  +
+    |      |  "LightSource" : "Cloudy weather",                                            +
+    |      |  "Flash" : "Flash did not fire, compulsory flash mode",                       +
+    |      |  "FocalLength" : "72.0 mm",                                                   +
+    |      |  "FileSource" : "DSC",                                                        +
+    |      |  "SceneType" : "Directly photographed",                                       +
+    |      |  "CustomRendered" : "Normal process",                                         +
+    |      |  "ExposureMode" : "Manual exposure",                                          +
+    |      |  "WhiteBalance" : "Manual white balance",                                     +
+    |      |  "SceneCaptureType" : "Standard",                                             +
+    |      |  "Contrast" : "Normal",                                                       +
+    |      |  "Saturation" : "Normal",                                                     +
+    |      |  "Sharpness" : "Normal",                                                      +
+    |      |  "FlashpixVersion" : "FlashPix Version 1.0",                                  +
+    |      |  "ColorSpace" : "Uncalibrated"                                                +
+    |      | }
+  3 | t    | 
+  4 | f    | {                                                                             +
+    |      |  "Make" : "SONY",                                                             +
+    |      |  "Model" : "DSC-H5",                                                          +
+    |      |  "XResolution" : "70",                                                        +
+    |      |  "YResolution" : "70",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "Software" : "Pictomio 1.2.31.0",                                            +
+    |      |  "DateTime" : "2010:07:04 23:31:12",                                          +
+    |      |  "Compression" : "JPEG compression",                                          +
+    |      |  "XResolution" : "72",                                                        +
+    |      |  "YResolution" : "72",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "ExposureTime" : "1\/200 sec.",                                              +
+    |      |  "FNumber" : "f\/3.5",                                                        +
+    |      |  "ExposureProgram" : "Aperture priority",                                     +
+    |      |  "ISOSpeedRatings" : "80",                                                    +
+    |      |  "ExifVersion" : "Exif Version 2.21",                                         +
+    |      |  "DateTimeOriginal" : "2008:04:14 20:45:14",                                  +
+    |      |  "DateTimeDigitized" : "2008:04:14 20:45:14",                                 +
+    |      |  "ShutterSpeedValue" : "7.64 EV (1\/200 sec.)",                               +
+    |      |  "ApertureValue" : "3.61 EV (f\/3.5)",                                        +
+    |      |  "ExposureBiasValue" : "0.00 EV",                                             +
+    |      |  "MaxApertureValue" : "3.00 EV (f\/2.8)",                                     +
+    |      |  "MeteringMode" : "Pattern",                                                  +
+    |      |  "LightSource" : "Cloudy weather",                                            +
+    |      |  "Flash" : "Flash did not fire, compulsory flash mode",                       +
+    |      |  "FocalLength" : "9.1 mm",                                                    +
+    |      |  "FileSource" : "DSC",                                                        +
+    |      |  "SceneType" : "Directly photographed",                                       +
+    |      |  "CustomRendered" : "Normal process",                                         +
+    |      |  "ExposureMode" : "Auto exposure",                                            +
+    |      |  "WhiteBalance" : "Manual white balance",                                     +
+    |      |  "SceneCaptureType" : "Standard",                                             +
+    |      |  "Contrast" : "Normal",                                                       +
+    |      |  "Saturation" : "Normal",                                                     +
+    |      |  "Sharpness" : "Normal",                                                      +
+    |      |  "FlashpixVersion" : "FlashPix Version 1.0",                                  +
+    |      |  "ColorSpace" : "Uncalibrated",                                               +
+    |      |  "GPSLatitudeRef" : "N",                                                      +
+    |      |  "GPSLatitude" : "52, 21, 26.032",                                            +
+    |      |  "GPSLongitudeRef" : "E",                                                     +
+    |      |  "GPSLongitude" : " 4, 51, 49.717",                                           +
+    |      |  "GPSAltitude" : " 0",                                                        +
+    |      |  "GPSMapDatum" : "WGS-84"                                                     +
+    |      | }
+  5 | f    | {                                                                             +
+    |      |  "Make" : "Canon",                                                            +
+    |      |  "Model" : "Canon EOS 650D",                                                  +
+    |      |  "Orientation" : "Top-left",                                                  +
+    |      |  "XResolution" : "72",                                                        +
+    |      |  "YResolution" : "72",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "Software" : "GIMP 2.10.34",                                                 +
+    |      |  "DateTime" : "2025:09:15 14:06:23",                                          +
+    |      |  "Artist" : "Sirius_MSK",                                                     +
+    |      |  "Copyright" : "Dmitri 'Sirius_MSK' Abramov (Photographer) - [None] (Editor)",+
+    |      |  "NewSubfileType" : "1",                                                      +
+    |      |  "ImageWidth" : "256",                                                        +
+    |      |  "ImageLength" : "170",                                                       +
+    |      |  "BitsPerSample" : "8, 8, 8",                                                 +
+    |      |  "Compression" : "JPEG compression",                                          +
+    |      |  "PhotometricInterpretation" : "YCbCr",                                       +
+    |      |  "SamplesPerPixel" : "3",                                                     +
+    |      |  "XResolution" : "72",                                                        +
+    |      |  "YResolution" : "72",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "ExposureTime" : "1\/160 sec.",                                              +
+    |      |  "FNumber" : "f\/6.3",                                                        +
+    |      |  "ExposureProgram" : "Aperture priority",                                     +
+    |      |  "ISOSpeedRatings" : "200",                                                   +
+    |      |  "SensitivityType" : "Recommended exposure index (REI)",                      +
+    |      |  "RecommendedExposureIndex" : "200",                                          +
+    |      |  "ExifVersion" : "Exif Version 2.3",                                          +
+    |      |  "DateTimeOriginal" : "2023:04:15 12:31:47",                                  +
+    |      |  "DateTimeDigitized" : "2023:04:15 12:31:47",                                 +
+    |      |  "ShutterSpeedValue" : "7.32 EV (1\/160 sec.)",                               +
+    |      |  "ApertureValue" : "5.31 EV (f\/6.3)",                                        +
+    |      |  "ExposureBiasValue" : "0.00 EV",                                             +
+    |      |  "MaxApertureValue" : "5.00 EV (f\/5.7)",                                     +
+    |      |  "MeteringMode" : "Center-weighted average",                                  +
+    |      |  "Flash" : "Flash did not fire, compulsory flash mode",                       +
+    |      |  "FocalLength" : "55.0 mm",                                                   +
+    |      |  "SubsecTime" : "91",                                                         +
+    |      |  "SubSecTimeOriginal" : "91",                                                 +
+    |      |  "SubSecTimeDigitized" : "91",                                                +
+    |      |  "ColorSpace" : "sRGB",                                                       +
+    |      |  "PixelXDimension" : "1080",                                                  +
+    |      |  "PixelYDimension" : "720",                                                   +
+    |      |  "FocalPlaneXResolution" : "5798.658",                                        +
+    |      |  "FocalPlaneYResolution" : "5788.945",                                        +
+    |      |  "FocalPlaneResolutionUnit" : "Inch",                                         +
+    |      |  "CustomRendered" : "Normal process",                                         +
+    |      |  "ExposureMode" : "Auto exposure",                                            +
+    |      |  "WhiteBalance" : "Manual white balance",                                     +
+    |      |  "SceneCaptureType" : "Standard",                                             +
+    |      |  "BodySerialNumber" : "203014006653",                                         +
+    |      |  "LensSpecification" : "18, 55, 0\/0, 0\/0",                                  +
+    |      |  "LensModel" : "EF-S18-55mm f\/3.5-5.6 III",                                  +
+    |      |  "LensSerialNumber" : "0000829cad",                                           +
+    |      |  "FlashpixVersion" : "FlashPix Version 1.0",                                  +
+    |      |  "GPSVersionID" : "2.2.0.0",                                                  +
+    |      |  "GPSLatitudeRef" : "S",                                                      +
+    |      |  "GPSLatitude" : "34, 35, 58.992",                                            +
+    |      |  "GPSLongitudeRef" : "W",                                                     +
+    |      |  "GPSLongitude" : "58, 22, 54.984",                                           +
+    |      |  "GPSAltitudeRef" : "Sea level",                                              +
+    |      |  "GPSAltitude" : "186.54",                                                    +
+    |      |  "GPSTimeStamp" : "09:31:27.00",                                              +
+    |      |  "GPSImgDirectionRef" : "T",                                                  +
+    |      |  "GPSImgDirection" : "300.48",                                                +
+    |      |  "GPSMapDatum" : "WGS-84",                                                    +
+    |      |  "GPSDestLatitudeRef" : "N",                                                  +
+    |      |  "GPSDestLatitude" : "55, 35, 45.8449",                                       +
+    |      |  "GPSDestLongitudeRef" : "E",                                                 +
+    |      |  "GPSDestLongitude" : "37, 40, 31.737",                                       +
+    |      |  "GPSDateStamp" : "2023:04:15"                                                +
+    |      | }
+  6 | t    | 
+  7 | t    | 
+  8 | f    | {                                                                             +
+    |      |  "ImageDescription" : "Проверка Вася",                                        +
+    |      |  "Orientation" : "Top-left",                                                  +
+    |      |  "XResolution" : "72",                                                        +
+    |      |  "YResolution" : "72",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "Software" : "GIMP 2.10.34",                                                 +
+    |      |  "DateTime" : "2025:09:24 14:26:26",                                          +
+    |      |  "NewSubfileType" : "1",                                                      +
+    |      |  "ImageWidth" : "170",                                                        +
+    |      |  "ImageLength" : "256",                                                       +
+    |      |  "BitsPerSample" : "8, 8, 8",                                                 +
+    |      |  "Compression" : "JPEG compression",                                          +
+    |      |  "PhotometricInterpretation" : "YCbCr",                                       +
+    |      |  "SamplesPerPixel" : "3",                                                     +
+    |      |  "XResolution" : "72",                                                        +
+    |      |  "YResolution" : "72",                                                        +
+    |      |  "ResolutionUnit" : "Inch",                                                   +
+    |      |  "UserComment" : "Unsupported UNICODE string",                                +
+    |      |  "ColorSpace" : "sRGB",                                                       +
+    |      |  "ExifVersion" : "Exif Version 2.1",                                          +
+    |      |  "FlashpixVersion" : "FlashPix Version 1.0"                                   +
+    |      | }
+(9 rows)
+
+--Testcase 018:
+SELECT id,
+       bytea_get_exif_tag_value(img, 'GPSLatitude') lat,
+       bytea_get_exif_tag_value(img, 'GPSLongitude') lon
+FROM img;
+ id |      lat       |      lon       
+----+----------------+----------------
+  0 |                | 
+  1 | 43, 40, 7.241  |  7, 13, 7.953
+  2 |                | 
+  3 |                | 
+  4 | 52, 21, 26.032 |  4, 51, 49.717
+  5 | 34, 35, 58.992 | 58, 22, 54.984
+  6 |                | 
+  7 |                | 
+  8 |                | 
+(9 rows)
+
+--Testcase 019:
+SELECT id,
+       bytea_get_exif_json(img) ->> 'GPSLatitude' lat,
+       bytea_get_exif_json(img) ->> 'GPSLongitude' lon
+FROM img;
+ id |      lat       |      lon       
+----+----------------+----------------
+  0 |                | 
+  1 | 43, 40, 7.241  |  7, 13, 7.953
+  2 |                | 
+  3 |                | 
+  4 | 52, 21, 26.032 |  4, 51, 49.717
+  5 | 34, 35, 58.992 | 58, 22, 54.984
+  6 |                | 
+  7 |                | 
+  8 |                | 
+(9 rows)
+
+--Testcase 020:
+SELECT id,
+       bytea_get_exif_tag_value(img, 'Make') make,
+       bytea_get_exif_tag_value(img, 'ResolutionUnit') ru,
+       bytea_get_exif_tag_value(img, 'Saturation') st,
+       bytea_get_exif_tag_value(img, 'ExposureProgram') ep
+FROM img;
+ id |       make        |  ru  |   st   |        ep         
+----+-------------------+------+--------+-------------------
+  0 |                   |      |        | 
+  1 | NIKON CORPORATION | Inch | Normal | Aperture priority
+  2 | SONY              | Inch | Normal | Aperture priority
+  3 |                   |      |        | 
+  4 | SONY              | Inch | Normal | Aperture priority
+  5 | Canon             | Inch |        | Aperture priority
+  6 |                   |      |        | 
+  7 |                   |      |        | 
+  8 |                   | Inch |        | 
+(9 rows)
+
+--Testcase 021:
+SELECT id, bytea_get_exif_point(img) exif, bytea_get_exif_point(img) IS NULL n FROM img;
+ id |                          exif                          | n 
+----+--------------------------------------------------------+---
+  0 |                                                        | t
+  1 | SRID=4326;Point(7.21887583333333 43.66867805555555)    | f
+  2 |                                                        | t
+  3 |                                                        | t
+  4 | SRID=4326;Point(4.86381027777778 52.35723111111111)    | f
+  5 | SRID=4326;Point(-58.38194000000000 -34.59972000000000) | f
+  6 |                                                        | t
+  7 |                                                        | t
+  8 |                                                        | t
+(9 rows)
+
+--Testcase 022:
+SELECT id, bytea_get_exif_dest_point(img) exif, bytea_get_exif_dest_point(img) IS NULL n FROM img;
+ id |                         exif                         | n 
+----+------------------------------------------------------+---
+  0 |                                                      | t
+  1 |                                                      | t
+  2 |                                                      | t
+  3 |                                                      | t
+  4 |                                                      | t
+  5 | SRID=4326;Point(37.67548263003870 55.59606802999318) | f
+  6 |                                                      | t
+  7 |                                                      | t
+  8 |                                                      | t
+(9 rows)
+
+--Testcase 023:
+SELECT id, bytea_get_mime_type(img) mime, bytea_get_mime_type(img) IS NULL n FROM img;
+ id |    mime    | n 
+----+------------+---
+  0 |            | t
+  1 | image/jpeg | f
+  2 | image/jpeg | f
+  3 | image/gif  | f
+  4 | image/jpeg | f
+  5 | image/jpeg | f
+  6 | text/plain | f
+  7 |            | t
+  8 | image/jpeg | f
+(9 rows)
+
+--Testcase 024:
+SELECT id,
+		to_char (bytea_get_exif_gps_utc_timestamp(img), 'YYYY-MM-DD HH24:MI:SS TZ') ts,
+		bytea_get_exif_gps_utc_timestamp(img) IS NULL n
+FROM img;
+ id |           ts            | n 
+----+-------------------------+---
+  0 |                         | t
+  1 |                         | t
+  2 |                         | t
+  3 |                         | t
+  4 |                         | t
+  5 | 2023-04-15 09:31:27 UTC | f
+  6 |                         | t
+  7 |                         | t
+  8 |                         | t
+(9 rows)
+
+--Testcase 025:
+SELECT id,
+       to_timestamp((bytea_get_exif_json(img) ->> 'DateTimeOriginal') || '+00', 'YYYY:MM:DD HH24:MI:SS')::timestamp without time zone at time zone 'Etc/UTC' ts
+FROM img;
+ id |              ts              
+----+------------------------------
+  0 | 
+  1 | Sat Feb 13 12:25:40 2010 UTC
+  2 | Mon Sep 01 13:24:46 2008 UTC
+  3 | 
+  4 | Mon Apr 14 20:45:14 2008 UTC
+  5 | Sat Apr 15 12:31:47 2023 UTC
+  6 | 
+  7 | 
+  8 | 
+(9 rows)
+
+--Testcase 026:
+set timezone to 'Australia/Canberra';
+--Testcase 027:
+SELECT id,
+       to_timestamp((bytea_get_exif_json(img) ->> 'DateTimeOriginal') || '+00', 'YYYY:MM:DD HH24:MI:SS')::timestamp without time zone at time zone 'Etc/UTC' ts
+FROM img;
+ id |              ts               
+----+-------------------------------
+  0 | 
+  1 | Sat Feb 13 23:25:40 2010 AEDT
+  2 | Mon Sep 01 23:24:46 2008 AEST
+  3 | 
+  4 | Tue Apr 15 06:45:14 2008 AEST
+  5 | Sat Apr 15 22:31:47 2023 AEST
+  6 | 
+  7 | 
+  8 | 
+(9 rows)
+
+--Testcase 028:
+SELECT id,
+		to_char (bytea_get_exif_gps_local_timestamp(img), 'YYYY-MM-DD HH24:MI:SS TZ') ts,
+		bytea_get_exif_gps_local_timestamp(img) IS NULL n
+FROM img;
+ id |          ts          | n 
+----+----------------------+---
+  0 |                      | t
+  1 |                      | t
+  2 |                      | t
+  3 |                      | t
+  4 |                      | t
+  5 | 2023-04-14 23:31:27  | f
+  6 |                      | t
+  7 |                      | t
+  8 |                      | t
+(9 rows)
+
+--Testcase 029:
+set timezone to 'UTC';
+--Testcase 030:
+SELECT id,
+		to_char (bytea_get_exif_gps_local_timestamp(img), 'YYYY-MM-DD HH24:MI:SS TZ') ts,
+		bytea_get_exif_gps_local_timestamp(img) IS NULL n
+FROM img;
+ id |          ts          | n 
+----+----------------------+---
+  0 |                      | t
+  1 |                      | t
+  2 |                      | t
+  3 |                      | t
+  4 |                      | t
+  5 | 2023-04-15 09:31:27  | f
+  6 |                      | t
+  7 |                      | t
+  8 |                      | t
+(9 rows)
+
+--Testcase 031:
+SELECT id,
+		replace(bytea_get_exif_user_comment(img), '- ', '
+') uc,
+		bytea_get_exif_user_comment(img) IS NULL n
+FROM img;
+ id |                                                              uc                                                              | n 
+----+------------------------------------------------------------------------------------------------------------------------------+---
+  0 |                                                                                                                              | t
+  1 |                                                                                                                              | t
+  2 |                                                                                                                              | t
+  3 |                                                                                                                              | t
+  4 |                                                                                                                              | t
+  5 |                                                                                                                              | t
+  6 |                                                                                                                              | t
+  7 |                                                                                                                              | t
+  8 | jap : いろはにほへと ちりぬるを わかよたれそ つねならむ うゐのおくやま けふこえて あさきゆめみし ゑひもせす.                +| f
+    | bul : Ах, чудна българска земьо, полюшвай цъфтящи жита.                                                                     +| 
+    | rus : Широкая электрификация южных губерний даст мощный толчок подъёму сельского хозяйства.                                 +| 
+    | aze : Zəfər, jaketini də, papağını da götür, bu axşam hava çox soyuq olacaq.                                                +| 
+    | arm : Բել դղյակի ձախ ժամն օֆ ազգությանը ցպահանջ չճշտած վնաս էր եւ փառք։                                                     +| 
+    | ukr : Гей, хлопці, не вспію — на ґанку ваша файна їжа знищується бурундучком.                                               +| 
+    | eus : Permin gox dabiltzu yoskiñ.                                                                                           +| 
+    | bel : У рудога вераб’я ў сховішчы пад фатэлем ляжаць нейкія гаючыя зёлкі.                                                   +| 
+    | gre : Τάχιστη αλώπηξ βαφής ψημένη γη, δρασκελίζει υπέρ νωθρού κυνός                                                         +| 
+    | gle : Chuaigh bé mhórshách le dlúthspád fíorfhinn trí hata mo dhea-phorcáin bhig.                                           +| 
+    | spa : Quiere la boca exhausta vid, kiwi, piña y fugaz jamón.                                                                +| 
+    | kor : 키스의 고유조건은 입술끼리 만나야 하고 특별한 기술은 필요치 않다.                                                     +| 
+    | lav : Ķieģeļu cepējs Edgars Buls fraku un hūti žāvē uz čīkstošām eņģēm.                                                     +| 
+    | pol : Pchnąć w tę łódź jeża lub ośm skrzyń fig.                                                                             +| 
+    | fra : Dès Noël où un zéphyr haï me vêt de glaçons würmiens je dîne d’exquis rôtis de bœuf au kir à l’aÿ d’âge mûr & cætera !+| 
+    | srp : Ljubavi, Olga, hajde pođi u Fudži i čut ćeš nježnu muziku srca.                                                       +| 
+    | epo : Laŭ Ludoviko Zamenhof bongustas freŝa ĉeĥa manĝaĵo kun spicoj.                                                        +| 
+    | cze : Zvlášť zákeřný učeň s ďolíčky běží podél zóny úlů.                                                                    +| 
+    | ara : أبجد هوَّز حُطّي كلَمُن سَعْفَص قُرِشَت ثَخَدٌ ضَظَغ                                                                                   +| 
+    | heb : עטלף אבק נס דרך מזגן שהתפוצץ כי חם                                                                                     | 
+(9 rows)
+
+--Testcase 040:
+DROP EXTENSION bytea_exif CASCADE;
