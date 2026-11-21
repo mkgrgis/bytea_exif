@@ -19,6 +19,8 @@ ifndef USE_NO_MIME
 override PG_CFLAGS += -DBYTEA_MIME
 endif
 
+override PG_CPPFLAGS += -DLIBEXIF_VERSION_STR=\"$(shell pkg-config --modversion libexif)\"
+
 ifndef REGRESS
 REGRESS = bytea_exif
 endif

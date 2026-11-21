@@ -46,6 +46,7 @@ Datum bytea_get_exif_gps_utc_timestamp(PG_FUNCTION_ARGS);
 Datum bytea_get_exif_gps_local_timestamp(PG_FUNCTION_ARGS);
 Datum bytea_get_exif_user_comment(PG_FUNCTION_ARGS);
 static void bytea_exif_exit(int code, Datum arg);
+static int get_libexif_version_int(void);
 
 extern PGDLLEXPORT void _PG_init(void);
 static void bytea_exif_exit(int code, Datum arg);
@@ -126,12 +127,19 @@ bytea_exif_version(PG_FUNCTION_ARGS)
 	PG_RETURN_INT32(CODE_VERSION);
 }
 
+static int get_libexif_version_int(void) {
+	int major = 0, minor = 0, patch = 0;
+
+	if (sscanf(LIBEXIF_VERSION_STR, "%d.%d.%d", &major, &minor, &patch) >= 2) {
+		return (major * 10000) + (minor * 100) + patch;
+	}
+	return 0; /* Fallback if parsing fails */
+}
+
 Datum
 bytea_exif_libexif_version(PG_FUNCTION_ARGS)
 {
-	/* No libexif version number is availlable now */
-	PG_RETURN_NULL();
-	/* PG_RETURN_INT32(LIBEXIF_VERSION); */
+	PG_RETURN_INT32(get_libexif_version_int());
 }
 
 Datum

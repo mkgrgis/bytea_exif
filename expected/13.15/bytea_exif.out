@@ -11,9 +11,9 @@ SELECT bytea_exif_version() v;
 
 --Testcase 003:
 SELECT bytea_exif_libexif_version() v;
- v 
----
-  
+  v  
+-----
+ 624
 (1 row)
 
 --Testcase 004:
