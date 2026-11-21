@@ -277,26 +277,7 @@ bytea_get_exif_tag_value(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 	}
 
-	for (unsigned j = 0; j < EXIF_IFD_COUNT; j++)
-	{
-		content = edata->ifd[j];
-		if (!content) /* no EXIF data */
-			continue;
-
-		for (unsigned int i = 0; i < content->count; i++)
-		{
-			ExifEntry	   *ee_loop = content->entries[i];
-			const char	   *tname = exif_tag_get_name_in_ifd(ee_loop->tag, j);
-
-			if (strcmp(tname, tagname) == 0)
-			{
-				ee = ee_loop;
-				break;
-			}
-		}
-		if (ee != NULL)
-			break;
-	} /* ifd */
+	ee = exif_data_get_entry(edata, tag);
 
 	if (ee == NULL) /* no such tage name */
 	{

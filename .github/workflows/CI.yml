@@ -4,9 +4,7 @@ on:
   workflow_dispatch:
   pull_request:  
   push:
-    branches:
-      - master
-      - main
+
 jobs:
   detect-pgversion:
     runs-on: ubuntu-22.04
